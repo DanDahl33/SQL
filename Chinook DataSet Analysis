@@ -1,0 +1,174 @@
+SQL Portfolio: Chinook Database
+The following queries were developed using the Chinook database, which simulates a digital media store. The database includes tables related to employees, customers, invoices, tracks, albums, genres, artists, playlists, and more. These queries showcase various data retrieval, aggregation, and analysis techniques, demonstrating my ability to work with relational databases and SQL.
+
+-- 1. Show Customers (their full names, customer ID, and country) who are not in the US.
+SELECT 
+  FirstName, 
+  LastName, 
+  CustomerId, 
+  Country
+FROM customers
+WHERE Country != 'USA';
+
+-- 2. Show only the Customers from Brazil.
+SELECT 
+  FirstName, 
+  LastName, 
+  CustomerId, 
+  Country
+FROM customers
+WHERE Country = 'Brazil';
+
+-- 3. Find the Invoices of customers who are from Brazil. The resulting table should show the customer's full name, Invoice ID, Date of the invoice, and billing country.
+SELECT 
+  c.FirstName, 
+  c.LastName, 
+  i.InvoiceId, 
+  i.InvoiceDate, 
+  i.BillingCountry
+FROM customers c
+LEFT JOIN invoices i
+  ON c.CustomerId = i.CustomerId
+WHERE c.Country = 'Brazil';
+
+-- 4. Show the Employees who are Sales Agents.
+SELECT *
+FROM employees
+WHERE Title = 'Sales Support Agent';
+
+-- 5. Find a unique/distinct list of billing countries from the Invoice table.
+SELECT 
+  DISTINCT(BillingCountry)
+FROM invoices;
+
+-- 6. Provide a query that shows the invoices associated with each sales agent. The resulting table should include the Sales Agent's full name.
+SELECT 
+  e.LastName, 
+  e.FirstName, 
+  i.InvoiceId
+FROM employees e
+JOIN customers c 
+  ON e.EmployeeId = c.SupportRepId
+JOIN invoices i 
+  ON c.CustomerId = i.CustomerID;
+
+-- 7. Show the Invoice Total, Customer name, Country, and Sales Agent name for all invoices and customers.
+SELECT 
+  CONCAT(e.FirstName, ' ', e.LastName) AS SalesAgentName, 
+  CONCAT(c.FirstName, ' ', c.LastName) AS CustomerName, 
+  c.Country, 
+  i.Total
+FROM employees e
+JOIN customers c 
+  ON c.SupportRepId = e.EmployeeId
+JOIN invoices i 
+  ON c.CustomerId = i.CustomerId;
+  
+-- 8. How many Invoices were there in 2009?
+SELECT
+  COUNT(*)
+FROM invoices
+WHERE InvoiceDate BETWEEN '2009-01-01' AND '2009-12-31';
+
+-- 9. What are the total sales for 2009?
+SELECT
+  SUM(Total)
+FROM invoices
+WHERE InvoiceDate BETWEEN '2009-01-01' AND '2009-12-31';
+
+-- 10. Write a query that includes the purchased track name with each invoice line ID.
+SELECT
+  ii.InvoiceLineId,
+  t.Name
+FROM invoice_items ii
+JOIN tracks t ON ii.TrackId = t.TrackId;
+
+-- 11. Write a query that includes the purchased track name AND artist name with each invoice line ID.
+SELECT
+  i.InvoiceLineId,
+  t.Name,
+  art.Name
+FROM invoice_items i
+LEFT JOIN tracks t 
+  ON i.TrackId = t.TrackId
+JOIN albums a 
+  ON a.AlbumId = t.AlbumId
+LEFT JOIN artists art 
+  ON art.ArtistId = a.ArtistId;
+
+-- 12. Provide a query that shows all the Tracks, and include the Album name, Media type, and Genre.
+SELECT 
+  t.Name AS Track,
+  al.Title AS Album,
+  m.Name AS Media,
+  g.Name AS Genre
+FROM tracks t
+JOIN albums al
+  ON al.AlbumId = t.AlbumId
+JOIN media_types m
+  ON m.MediaTypeId = t.MediaTypeId
+JOIN genres g
+  ON g.GenreId = t.GenreId;
+  
+-- 13. Show the total sales made by each sales agent.
+SELECT
+ CONCAT(e.FirstName, ' ', e.LastName) AS SalesAgentName, 
+ ROUND (sum(i.total), 2) AS TotalSales
+FROM invoices i
+JOIN customers c
+  ON c.CustomerId = i.CustomerId
+JOIN employees e
+  ON c.SupportRepId = e.EmployeeId
+WHERE e.Title = 'Sales Support Agent' 
+GROUP BY SalesAgentName;
+
+-- 14. Which sales agent made the most dollars in sales in 2009?
+
+SELECT
+ CONCAT(e.FirstName, ' ', e.LastName) AS SalesAgentName, 
+ ROUND (sum(i.total), 2) AS TotalSales
+FROM invoices i
+JOIN customers c
+  ON c.CustomerId = i.CustomerId
+JOIN employees e
+  ON c.SupportRepId = e.EmployeeId
+WHERE e.Title = 'Sales Support Agent' 
+  AND i.InvoiceDate BETWEEN '2009-01-01' AND '2009-12-31'
+GROUP BY SalesAgentName
+ORDER BY TotalSales DESC
+LIMIT 1;
+
+-- 15. How many times does each Track appear in a Playlist And Which Playlists does it show up in
+SELECT 
+  t.Name AS TrackName, 
+  GROUP_CONCAT(p.Name) AS PlaylistNames,
+  COUNT(pt.PlaylistId) AS PlaylistCount
+FROM tracks t
+JOIN playlist_track pt ON t.TrackId = pt.TrackId
+JOIN playlists p ON pt.PlaylistId = p.PlaylistId
+GROUP BY t.TrackId
+ORDER BY COUNT(pt.PlaylistId) DESC;
+
+-- 16. Which employees managed the most customers in 2009?
+SELECT 
+  e.FirstName,
+  e.LastName, 
+  COUNT(c.CustomerId) AS CustomerCount
+FROM employees e
+JOIN customers c ON e.EmployeeId = c.SupportRepId
+JOIN invoices i ON c.CustomerId = i.CustomerId
+WHERE i.InvoiceDate BETWEEN '2009-01-01' AND '2009-12-31'
+GROUP BY e.EmployeeId
+ORDER BY CustomerCount DESC
+LIMIT 1;
+
+-- 17. What are the 5 albums with the most Tracks
+SELECT 
+  a.AlbumId, 
+  a.Title AS AlbumTitle, 
+  COUNT(t.TrackId) AS NumberOfTracks
+FROM albums a
+JOIN tracks t ON a.AlbumId = t.AlbumId
+GROUP BY a.AlbumId
+ORDER BY NumberOfTracks DESC
+LIMIT 5;
